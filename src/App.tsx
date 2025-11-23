@@ -9,6 +9,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import { AuthProvider } from "@/lib/auth";
 import NavAuth from "@/components/NavAuth";
+import History from "./pages/History";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
           <NavAuth />
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/history" element={<History />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

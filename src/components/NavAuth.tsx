@@ -24,6 +24,7 @@ const NavAuth: React.FC = () => {
 
           {user && (
             <div className="flex items-center gap-3">
+              <Link to="/history" className="text-sm text-muted-foreground">My Assessments</Link>
               <span className="text-sm text-muted-foreground">{user.email}</span>
               <Button variant="ghost" size="sm" onClick={logout}>Logout</Button>
             </div>

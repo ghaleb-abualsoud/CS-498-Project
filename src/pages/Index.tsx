@@ -4,6 +4,8 @@ import { RiskAssessmentDisplay } from "@/components/RiskAssessmentDisplay";
 import { RiskFactorDetails } from "@/components/RiskFactorDetails";
 import { BiometricData, RiskAssessment, RiskFactor, ShapValues } from "@/types/health";
 import { calculateRiskAssessment, generateRiskFactors, loadShapValuesFromJson } from "@/utils/riskCalculation";
+import { useAuth } from "@/lib/auth";
+import { saveAssessmentForUser } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -17,6 +19,7 @@ const Index = () => {
   const [shapValues, setShapValues] = useState<ShapValues | null>(null);
   const [shapJsonInput, setShapJsonInput] = useState("");
   const [showShapInput, setShowShapInput] = useState(false);
+  const auth = useAuth();
 
   const handleBiometricSubmit = (data: BiometricData) => {
     const calculatedAssessment = calculateRiskAssessment(data, shapValues || undefined);
@@ -25,6 +28,21 @@ const Index = () => {
     setAssessment(calculatedAssessment);
     setRiskFactors(factors);
     
+    // Save assessment to the logged-in user's history (if available)
+    try {
+      if ((auth?.user)) {
+        saveAssessmentForUser(auth.user.email, {
+          data,
+          assessment: calculatedAssessment,
+          factors,
+          shapValues: shapValues || null,
+        });
+      }
+    } catch (e) {
+      // non-fatal
+      console.error("Failed to save assessment", e);
+    }
+
     toast.success("Risk assessment completed successfully");
     
     // Scroll to results
