@@ -17,19 +17,32 @@ function keyFor(email: string) {
   return `${ASSESSMENTS_PREFIX}${safe}`;
 }
 
-export function saveAssessmentForUser(email: string, entry: Omit<StoredAssessment, "id" | "timestamp">) {
+export function saveAssessmentForUser(
+  email: string,
+  entry: ({ id?: string; timestamp?: string } & Omit<StoredAssessment, "id" | "timestamp">)
+) {
   try {
     const k = keyFor(email);
     const raw = localStorage.getItem(k);
     const arr: StoredAssessment[] = raw ? JSON.parse(raw) : [];
     const newEntry: StoredAssessment = {
-      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      timestamp: new Date().toISOString(),
+      id: entry.id ?? `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      timestamp: entry.timestamp ?? new Date().toISOString(),
       data: entry.data,
       assessment: entry.assessment,
       factors: entry.factors,
       shapValues: entry.shapValues ?? null,
     };
+
+    // If an entry with the same id already exists, move it to the front (avoid duplicates)
+    if (entry.id) {
+      const existingIndex = arr.findIndex((a) => a.id === entry.id);
+      if (existingIndex !== -1) {
+        // remove old occurrence
+        arr.splice(existingIndex, 1);
+      }
+    }
+
     arr.unshift(newEntry);
     localStorage.setItem(k, JSON.stringify(arr));
     return newEntry;
