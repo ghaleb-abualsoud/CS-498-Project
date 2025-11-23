@@ -41,7 +41,7 @@ const History: React.FC = () => {
         return copy;
       });
       toast.success("Assessment permanently deleted");
-    }, 5000); // 5s undo window
+    }, 64000); // 64s undo window
 
     setPendingDeletes((prev) => ({ ...prev, [id]: timeoutId }));
   };
