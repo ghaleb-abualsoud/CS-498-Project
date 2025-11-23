@@ -58,3 +58,17 @@ export function clearAssessmentsForUser(email: string) {
     // ignore
   }
 }
+
+export function removeAssessmentForUser(email: string, id: string) {
+  try {
+    const k = keyFor(email);
+    const raw = localStorage.getItem(k);
+    if (!raw) return false;
+    const arr: StoredAssessment[] = JSON.parse(raw);
+    const filtered = arr.filter((a) => a.id !== id);
+    localStorage.setItem(k, JSON.stringify(filtered));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
