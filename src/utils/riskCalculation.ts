@@ -1,35 +1,64 @@
 import { BiometricData, RiskAssessment, RiskFactor, ShapValues } from "@/types/health";
+import { getPredictionWithShap } from "@/lib/mlApi";
 
-export const calculateRiskAssessment = (data: BiometricData, shapValues?: ShapValues): RiskAssessment => {
-  // Heart disease risk calculation
+export const calculateRiskAssessment = async (data: BiometricData, shapValues?: ShapValues): Promise<RiskAssessment> => {
+  // Try to get ML-based prediction
   let heartRiskScore = 0;
+  let mlShapValues = shapValues;
   
-  // Age factor (higher age = higher risk)
-  if (data.age > 65) heartRiskScore += 30;
-  else if (data.age > 50) heartRiskScore += 20;
-  else if (data.age > 40) heartRiskScore += 10;
+  try {
+    const prediction = await getPredictionWithShap({
+      age: data.age,
+      sex: data.sex,
+      systolicBP: data.systolicBP,
+      diastolicBP: data.diastolicBP,
+      heartRate: data.heartRate,
+      bmi: data.bmi,
+    });
+    
+    // Use ML model's risk score
+    heartRiskScore = prediction.risk_score;
+    
+    // Update SHAP values from ML model
+    if (prediction.shap_values) {
+      mlShapValues = {
+        age: prediction.shap_values.age,
+        sex: prediction.shap_values.sex,
+        systolicBP: prediction.shap_values.systolicBP,
+        ...mlShapValues
+      };
+    }
+  } catch (error) {
+    console.warn('ML prediction failed, falling back to rule-based calculation:', error);
+    
+    // Fallback: Rule-based heart disease risk calculation
+    // Age factor (higher age = higher risk)
+    if (data.age > 65) heartRiskScore += 30;
+    else if (data.age > 50) heartRiskScore += 20;
+    else if (data.age > 40) heartRiskScore += 10;
 
-  // Blood pressure factor
-  if (data.systolicBP > 140 || data.diastolicBP > 90) heartRiskScore += 25;
-  else if (data.systolicBP > 130 || data.diastolicBP > 85) heartRiskScore += 15;
+    // Blood pressure factor
+    if (data.systolicBP > 140 || data.diastolicBP > 90) heartRiskScore += 25;
+    else if (data.systolicBP > 130 || data.diastolicBP > 85) heartRiskScore += 15;
 
-  // Heart rate factor
-  if (data.heartRate > 100) heartRiskScore += 15;
-  else if (data.heartRate < 50) heartRiskScore += 10;
+    // Heart rate factor
+    if (data.heartRate > 100) heartRiskScore += 15;
+    else if (data.heartRate < 50) heartRiskScore += 10;
 
-  // BMI factor
-  if (data.bmi > 30) heartRiskScore += 20;
-  else if (data.bmi > 25) heartRiskScore += 10;
-  else if (data.bmi < 18.5) heartRiskScore += 10;
+    // BMI factor
+    if (data.bmi > 30) heartRiskScore += 20;
+    else if (data.bmi > 25) heartRiskScore += 10;
+    else if (data.bmi < 18.5) heartRiskScore += 10;
 
-  // Sex factor
-  if (data.sex === "male" && data.age > 45) heartRiskScore += 10;
+    // Sex factor
+    if (data.sex === "male" && data.age > 45) heartRiskScore += 10;
 
-  // Apply SHAP adjustments if provided
-  if (shapValues?.age) heartRiskScore += shapValues.age * 10;
-  if (shapValues?.systolicBP) heartRiskScore += shapValues.systolicBP * 10;
+    // Apply SHAP adjustments if provided
+    if (shapValues?.age) heartRiskScore += shapValues.age * 10;
+    if (shapValues?.systolicBP) heartRiskScore += shapValues.systolicBP * 10;
 
-  heartRiskScore = Math.min(100, Math.max(0, heartRiskScore));
+    heartRiskScore = Math.min(100, Math.max(0, heartRiskScore));
+  }
 
   // Neurological risk calculation
   let neuroRiskScore = 0;
@@ -48,8 +77,8 @@ export const calculateRiskAssessment = (data: BiometricData, shapValues?: ShapVa
   else if (data.bmi < 18.5) neuroRiskScore += 10;
 
   // Apply SHAP adjustments if provided
-  if (shapValues?.age) neuroRiskScore += shapValues.age * 12;
-  if (shapValues?.bmi) neuroRiskScore += shapValues.bmi * 8;
+  if (mlShapValues?.age) neuroRiskScore += mlShapValues.age * 12;
+  if (mlShapValues?.bmi) neuroRiskScore += (mlShapValues.bmi || 0) * 8;
 
   neuroRiskScore = Math.min(100, Math.max(0, neuroRiskScore));
 

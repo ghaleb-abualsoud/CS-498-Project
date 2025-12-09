@@ -5,13 +5,14 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BiometricData } from "@/types/health";
-import { Activity } from "lucide-react";
+import { Activity, Loader2 } from "lucide-react";
 
 interface BiometricFormProps {
   onSubmit: (data: BiometricData) => void;
+  isCalculating?: boolean;
 }
 
-export const BiometricForm = ({ onSubmit }: BiometricFormProps) => {
+export const BiometricForm = ({ onSubmit, isCalculating = false }: BiometricFormProps) => {
   const [formData, setFormData] = useState<BiometricData>({
     age: 0,
     systolicBP: 0,
@@ -130,8 +131,19 @@ export const BiometricForm = ({ onSubmit }: BiometricFormProps) => {
           </div>
         </div>
 
-        <Button type="submit" className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity">
-          Analyze Health Risks
+        <Button 
+          type="submit" 
+          className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
+          disabled={isCalculating}
+        >
+          {isCalculating ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Analyzing...
+            </>
+          ) : (
+            "Analyze Health Risks"
+          )}
         </Button>
       </form>
     </Card>

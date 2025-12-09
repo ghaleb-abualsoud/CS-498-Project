@@ -19,36 +19,45 @@ const Index = () => {
   const [shapValues, setShapValues] = useState<ShapValues | null>(null);
   const [shapJsonInput, setShapJsonInput] = useState("");
   const [showShapInput, setShowShapInput] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
   const auth = useAuth();
 
-  const handleBiometricSubmit = (data: BiometricData) => {
-    const calculatedAssessment = calculateRiskAssessment(data, shapValues || undefined);
-    const factors = generateRiskFactors(data, shapValues || undefined);
-    
-    setAssessment(calculatedAssessment);
-    setRiskFactors(factors);
-    
-    // Save assessment to the logged-in user's history (if available)
+  const handleBiometricSubmit = async (data: BiometricData) => {
+    setIsCalculating(true);
     try {
-      if ((auth?.user)) {
-        saveAssessmentForUser(auth.user.email, {
-          data,
-          assessment: calculatedAssessment,
-          factors,
-          shapValues: shapValues || null,
-        });
+      const calculatedAssessment = await calculateRiskAssessment(data, shapValues || undefined);
+      const factors = generateRiskFactors(data, shapValues || undefined);
+      
+      setAssessment(calculatedAssessment);
+      setRiskFactors(factors);
+      
+      // Save assessment to the logged-in user's history (if available)
+      try {
+        if ((auth?.user)) {
+          saveAssessmentForUser(auth.user.email, {
+            data,
+            assessment: calculatedAssessment,
+            factors,
+            shapValues: shapValues || null,
+          });
+        }
+      } catch (e) {
+        // non-fatal
+        console.error("Failed to save assessment", e);
       }
-    } catch (e) {
-      // non-fatal
-      console.error("Failed to save assessment", e);
-    }
 
-    toast.success("Risk assessment completed successfully");
-    
-    // Scroll to results
-    setTimeout(() => {
-      document.getElementById("results")?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
+      toast.success("Risk assessment completed successfully");
+      
+      // Scroll to results
+      setTimeout(() => {
+        document.getElementById("results")?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    } catch (error) {
+      toast.error("Failed to calculate risk assessment. Please try again.");
+      console.error("Risk assessment error:", error);
+    } finally {
+      setIsCalculating(false);
+    }
   };
 
   const handleShapValuesLoad = () => {
@@ -87,7 +96,7 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 space-y-8">
         {/* Biometric Input Form */}
-        <BiometricForm onSubmit={handleBiometricSubmit} />
+        <BiometricForm onSubmit={handleBiometricSubmit} isCalculating={isCalculating} />
 
         {/* SHAP Values Section (moved below Biometric Assessment) */}
         <Card className="p-6 shadow-[var(--card-shadow)]">
